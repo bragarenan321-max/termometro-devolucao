@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Termômetro de Devolução</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;overflow-x:hidden;font-family:Arial,Helvetica,sans-serif;color:#1C2A4A;background:#fff}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #E5E8EE}
+  .seg{display:inline-flex;border:1px solid #CBD2DC;border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:#fff;color:#1C2A4A;font:600 12px Arial;padding:7px 12px;cursor:pointer}
+  .seg button+button{border-left:1px solid #CBD2DC}
+  .seg button.on{background:#1C2A4A;color:#fff}
+  select{border:1px solid #CBD2DC;border-radius:8px;padding:6px 8px;font:12px Arial;color:#1C2A4A;background:#fff}
+  label{font-size:11px;color:#6B7280;font-weight:600;letter-spacing:.3px}
+  .esc{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:#6B7280}
+  .grad{width:150px;height:10px;border-radius:5px;background:linear-gradient(90deg,#F6C3C5,#E31B23 50%,#7A0010)}
+  .row{display:flex;justify-content:safe center;gap:4px;padding:12px 8px 4px;overflow-x:auto}
+  .t{flex:1 1 0;min-width:72px;max-width:120px;text-align:center}
+  .pct{font:700 20px Arial;line-height:1}
+  .nm{font:700 11px Arial;margin-top:2px;min-height:26px;display:flex;align-items:center;justify-content:center;text-transform:uppercase}
+  .sub{font-size:10px;color:#6B7280;line-height:1.35}
+  .tag{display:inline-block;margin-top:3px;font:700 9px Arial;color:#fff;background:#7A0010;border-radius:4px;padding:2px 5px;letter-spacing:.3px}
+  .tag.at{background:#E31B23}
+  .tag.ok{background:#9AA3B2}
+  .merc{transition:y .9s ease,height .9s ease}
+  .foot{font-size:10px;color:#9AA3B2;text-align:right;padding:0 14px 6px}
+  .vazio{padding:40px;text-align:center;color:#6B7280;font-size:13px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="seg" id="tipo"><button data-v="REVERSA" class="on">Reversa</button><button data-v="INICIALIZADOS">Inicializados</button></div>
+  <div class="seg" id="nivel"><button data-v="GERENTE" class="on">Por gerência</button><button data-v="BASE">Por base</button></div>
+  <label>ANO</label><select id="ano"></select>
+  <label>GERÊNCIA</label><select id="ger"></select>
+  <div class="esc"><span>até 20%</span><div class="grad"></div><span>acima de 35% = tratar já</span></div>
+</div>
+<div class="row" id="row"><div class="vazio">Carregando os dados da planilha…</div></div>
+<div class="foot" id="foot"></div>
+<script>
+let D = {linhas:[],carimbos:{}};
+const API = 'https://script.google.com/macros/s/AKfycbwxFv5cPSOitgRdUy2y5nHDuIWNCUMufPBW7AF-AkuQNAz6RzZGz-bqv5F2aIERJogT/exec?formato=json';
+const st = {tipo:'REVERSA', nivel:'GERENTE', ano:'', ger:''};
+const fmt = n => n.toLocaleString('pt-BR');
+const pc = p => (p*100).toFixed(1).replace('.', ',') + '%';
+function mix(a,b,t){const h=x=>[1,3,5].map(i=>parseInt(x.substr(i,2),16));const A=h(a),B=h(b);return 'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')';}
+function cor(p){ if(p<=0.35) return mix('#F6C3C5','#E31B23',p/0.35); return mix('#E31B23','#7A0010',Math.min(1,(p-0.35)/0.35)); }
+function opts(){
+  const anos=[...new Set(D.linhas.filter(r=>r[0]===st.tipo).map(r=>r[9]))].sort();
+  const gers=[...new Set(D.linhas.filter(r=>r[0]===st.tipo).map(r=>r[3]))].sort();
+  const a=document.getElementById('ano'), g=document.getElementById('ger');
+  a.innerHTML='<option value="">Todos</option>'+anos.map(x=>'<option'+(x===st.ano?' selected':'')+'>'+x+'</option>').join('');
+  g.innerHTML='<option value="">Todas</option>'+gers.map(x=>'<option'+(x===st.ger?' selected':'')+'>'+x+'</option>').join('');
+  if(!anos.includes(st.ano)) st.ano=''; if(!gers.includes(st.ger)) st.ger='';
+}
+function svg(p,c){
+  const H=170, top=10, x=26, w=28, hh=Math.max(0,Math.min(1,p))*H;
+  let s='<svg viewBox="0 0 80 240" width="100%" style="max-width:86px" role="img" aria-label="'+pc(p)+' urgente">';
+  for(let k=0;k<=4;k++){const y=top+H-k*H/4;s+='<line x1="58" x2="64" y1="'+y+'" y2="'+y+'" stroke="#CBD2DC"/><text x="66" y="'+(y+3)+'" font-size="7" fill="#9AA3B2">'+(k*25)+'</text>';}
+  s+='<rect x="'+x+'" y="'+top+'" width="'+w+'" height="'+(H+20)+'" rx="14" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/>';
+  s+='<circle cx="'+(x+w/2)+'" cy="'+(top+H+26)+'" r="22" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/>';
+  s+='<rect class="merc" x="'+(x+6)+'" y="'+(top+H-hh+4)+'" width="'+(w-12)+'" height="'+(hh+20)+'" rx="8" fill="'+c+'"/>';
+  s+='<circle cx="'+(x+w/2)+'" cy="'+(top+H+26)+'" r="16" fill="'+c+'"/>';
+  s+='<rect x="'+(x+9)+'" y="'+(top+8)+'" width="4" height="'+(H-10)+'" rx="2" fill="#fff" opacity=".55"/>';
+  return s+'</svg>';
+}
+function draw(){
+  const m={};
+  D.linhas.forEach(r=>{
+    if(r[0]!==st.tipo||r[1]!==st.nivel) return;
+    if(st.ano&&r[9]!==st.ano) return;
+    if(st.ger&&r[3]!==st.ger) return;
+    const k=r[2]; m[k]=m[k]||{n:k,g:r[3],pa:0,pr:0,ur:0,t:0,v:0};
+    m[k].pa+=r[4]; m[k].pr+=r[5]; m[k].ur+=r[6]; m[k].t+=r[7]; m[k].v+=r[8];
+  });
+  const L=Object.values(m).filter(x=>x.t>0).map(x=>(x.p=x.ur/x.t,x.pp=x.pr/x.t,x)).sort((a,b)=>b.p-a.p);
+  const row=document.getElementById('row');
+  if(!L.length){row.innerHTML='<div class="vazio">Sem terminais para os filtros escolhidos.</div>';return;}
+  row.innerHTML=L.map(x=>{const c=cor(x.p);const tag=x.p>=0.35?'<span class="tag">TRATAR JÁ</span>':x.p>=0.20?'<span class="tag at">ATENÇÃO</span>':'<span class="tag ok">CONTROLADO</span>';
+    const nome=st.nivel==='GERENTE'?x.n.split(' ').filter((w,i,a)=>i===0||i===a.length-1).join(' '):x.n;
+    return '<div class="t" title="'+x.n+' — urgente '+fmt(x.ur)+' · prioridade '+fmt(x.pr)+' · passivo '+fmt(x.pa)+'"><div class="pct" style="color:'+(x.p<0.12?'#1C2A4A':c)+'">'+pc(x.p)+'</div>'+svg(x.p,c)+'<div class="nm">'+nome+'</div><div class="sub">'+fmt(x.ur)+' de '+fmt(x.t)+'<br>prioridade '+pc(x.pp)+'</div>'+tag+'</div>';}).join('');
+  const cb=D.carimbos[st.tipo];
+  document.getElementById('foot').textContent='% urgente de devolução (acima de 60 dias) sobre o total de terminais'+(cb?' · dados atualizados em '+cb:'');
+}
+function seg(id,key){document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;st[key]=b.dataset.v;[...b.parentNode.children].forEach(x=>x.classList.toggle('on',x===b));opts();draw();});}
+seg('tipo','tipo'); seg('nivel','nivel');
+document.getElementById('ano').onchange=e=>{st.ano=e.target.value;draw();};
+document.getElementById('ger').onchange=e=>{st.ger=e.target.value;draw();};
+fetch(API).then(r=>r.json()).then(j=>{D=j;opts();draw();}).catch(()=>{document.getElementById('row').innerHTML='<div class="vazio">Não foi possível carregar os dados. Recarregue a página.</div>';});
+</script>
+</body>
+</html>
