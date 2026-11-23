@@ -14,7 +14,7 @@
   label{font-size:11px;color:#6B7280;font-weight:600;letter-spacing:.3px}
   .esc{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:#6B7280}
   .grad{width:150px;height:10px;border-radius:5px;background:linear-gradient(90deg,#F6C3C5,#E31B23 50%,#7A0010)}
-  .row{display:flex;justify-content:safe center;gap:4px;padding:12px 8px 4px;overflow-x:auto}
+  .row{display:flex;justify-content:safe center;gap:4px;padding:8px 8px 2px;overflow-x:auto}
   .t{flex:1 1 0;min-width:72px;max-width:120px;text-align:center}
   .pct{font:700 20px Arial;line-height:1}
   .nm{font:700 11px Arial;margin-top:2px;min-height:26px;display:flex;align-items:center;justify-content:center;text-transform:uppercase}
@@ -55,7 +55,7 @@ function opts(){
 }
 function svg(p,c){
   const H=170, top=10, x=26, w=28, hh=Math.max(0,Math.min(1,p))*H;
-  let s='<svg viewBox="0 0 80 240" width="100%" style="max-width:86px" role="img" aria-label="'+pc(p)+' urgente">';
+  let s='<svg viewBox="0 0 80 240" width="100%" style="max-width:78px" role="img" aria-label="'+pc(p)+' urgente">';
   for(let k=0;k<=4;k++){const y=top+H-k*H/4;s+='<line x1="58" x2="64" y1="'+y+'" y2="'+y+'" stroke="#CBD2DC"/><text x="66" y="'+(y+3)+'" font-size="7" fill="#9AA3B2">'+(k*25)+'</text>';}
   s+='<rect x="'+x+'" y="'+top+'" width="'+w+'" height="'+(H+20)+'" rx="14" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/>';
   s+='<circle cx="'+(x+w/2)+'" cy="'+(top+H+26)+'" r="22" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/>';
