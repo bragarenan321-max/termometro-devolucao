@@ -60,6 +60,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
 <div class="bar">
   <div class="seg" id="tipo"><button data-v="REVERSA" class="on">Reversa</button><button data-v="INICIALIZADOS">Inicializados</button></div>
   <div class="seg" id="nivel"><button data-v="GERENTE" class="on">Por gerência</button><button data-v="BASE">Por base</button></div>
+  <div class="seg" id="giro"><button data-v="" class="on">Todos</button><button data-v="Alto Giro">Alto giro</button><button data-v="Baixo Giro">Baixo giro</button></div>
   <label>ANO</label><select id="ano"></select>
   <label>GERÊNCIA</label><select id="ger"></select>
   <div class="upd" id="upd"></div>
@@ -82,7 +83,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
 <script>
 let D={linhas:[],carimbos:{}};
 const API='https://script.google.com/macros/s/AKfycbwxFv5cPSOitgRdUy2y5nHDuIWNCUMufPBW7AF-AkuQNAz6RzZGz-bqv5F2aIERJogT/exec?formato=json';
-const st={tipo:'REVERSA',nivel:'GERENTE',ano:'',ger:'',ord:'p',dir:-1};
+const st={tipo:'REVERSA',nivel:'GERENTE',giro:'',ano:'',ger:'',ord:'p',dir:-1};
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('pt-BR');
 const pc=p=>(p*100).toFixed(1).replace('.',',')+'%';
@@ -91,7 +92,7 @@ const curto=s=>s.split(' ').filter((w,i,a)=>i===0||i===a.length-1).join(' ');
 function mix(a,b,t){const h=x=>[1,3,5].map(i=>parseInt(x.substr(i,2),16));const A=h(a),B=h(b);return 'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')';}
 function cor(p){return p<=0.35?mix('#F6C3C5','#E31B23',p/0.35):mix('#E31B23','#7A0010',Math.min(1,(p-0.35)/0.35));}
 function tag(p){return p>=0.35?'<span class="tag">TRATAR JÁ</span>':p>=0.20?'<span class="tag at">ATENÇÃO</span>':'<span class="tag ok">CONTROLADO</span>';}
-function agg(nivel){const m={};D.linhas.forEach(r=>{if(r[0]!==st.tipo||r[1]!==nivel)return;if(st.ano&&r[9]!==st.ano)return;if(st.ger&&r[3]!==st.ger)return;const k=r[2];m[k]=m[k]||{n:k,g:r[3],pa:0,pr:0,ur:0,t:0,v:0};m[k].pa+=r[4];m[k].pr+=r[5];m[k].ur+=r[6];m[k].t+=r[7];m[k].v+=r[8];});return Object.values(m).filter(x=>x.t>0).map(x=>(x.p=x.ur/x.t,x.pp=x.pr/x.t,x));}
+function agg(nivel){const m={};D.linhas.forEach(r=>{if(r[0]!==st.tipo||r[1]!==nivel)return;if(st.ano&&r[9]!==st.ano)return;if(st.giro&&r[10]!==st.giro)return;if(st.ger&&r[3]!==st.ger)return;const k=r[2];m[k]=m[k]||{n:k,g:r[3],pa:0,pr:0,ur:0,t:0,v:0};m[k].pa+=r[4];m[k].pr+=r[5];m[k].ur+=r[6];m[k].t+=r[7];m[k].v+=r[8];});return Object.values(m).filter(x=>x.t>0).map(x=>(x.p=x.ur/x.t,x.pp=x.pr/x.t,x));}
 function opts(){const L=D.linhas.filter(r=>r[0]===st.tipo);const anos=[...new Set(L.map(r=>r[9]))].sort(),gers=[...new Set(L.map(r=>r[3]))].sort();if(!anos.includes(st.ano))st.ano='';if(!gers.includes(st.ger))st.ger='';$('ano').innerHTML='<option value="">Todos</option>'+anos.map(x=>'<option'+(x===st.ano?' selected':'')+'>'+x+'</option>').join('');$('ger').innerHTML='<option value="">Todas</option>'+gers.map(x=>'<option'+(x===st.ger?' selected':'')+'>'+x+'</option>').join('');}
 function svg(p,c){const H=150,top=8,x=26,w=26,hh=Math.max(0,Math.min(1,p))*H;let s='<svg viewBox="0 0 80 215" width="100%" style="max-width:74px" role="img" aria-label="'+pc(p)+' urgente">';for(let k=0;k<=4;k++){const y=top+H-k*H/4;s+='<line x1="56" x2="62" y1="'+y+'" y2="'+y+'" stroke="#CBD2DC"/><text x="64" y="'+(y+3)+'" font-size="7" fill="#9AA3B2">'+(k*25)+'</text>';}s+='<rect x="'+x+'" y="'+top+'" width="'+w+'" height="'+(H+18)+'" rx="13" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/><circle cx="'+(x+w/2)+'" cy="'+(top+H+24)+'" r="20" fill="#EEF0F3" stroke="#CBD2DC" stroke-width="1.5"/><rect x="'+(x+6)+'" y="'+(top+H-hh+4)+'" width="'+(w-12)+'" height="'+(hh+18)+'" rx="7" fill="'+c+'"/><circle cx="'+(x+w/2)+'" cy="'+(top+H+24)+'" r="14" fill="'+c+'"/><rect x="'+(x+8)+'" y="'+(top+8)+'" width="4" height="'+(H-10)+'" rx="2" fill="#fff" opacity=".55"/>';return s+'</svg>';}
 function draw(){
@@ -112,7 +113,7 @@ function draw(){
   const cb=D.carimbos[st.tipo];$('upd').textContent=cb?'Dados atualizados em '+cb:'';
 }
 function seg(id,key){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;st[key]=b.dataset.v;[...b.parentNode.children].forEach(x=>x.classList.toggle('on',x===b));opts();draw();});}
-seg('tipo','tipo');seg('nivel','nivel');
+seg('tipo','tipo');seg('nivel','nivel');seg('giro','giro');
 $('ano').onchange=e=>{st.ano=e.target.value;draw();};
 $('ger').onchange=e=>{st.ger=e.target.value;draw();};
 $('tab').addEventListener('click',e=>{const h=e.target.closest('th');if(!h)return;const k=h.dataset.k;st.dir=st.ord===k?-st.dir:(k==='n'||k==='g'?1:-1);st.ord=k;draw();});
